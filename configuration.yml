@@ -1,0 +1,14 @@
+# ==============================================================================
+# Redmine Configuration Reference Template
+# ==============================================================================
+# File ini bersifat opsional karena konfigurasi database dan email telah diatur
+# melalui Environment Variables di docker-compose.yml.
+# ==============================================================================
+
+default:
+  # Konfigurasi pengiriman email kustom (jika tidak menggunakan env vars)
+  email_delivery:
+    delivery_method: :smtp
+    smtp_settings:
+      enable_starttls_auto: true
+      openssl_verify_mode: 'peer'

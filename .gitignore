@@ -1,0 +1,5 @@
+redmine
+smtp
+postgresql
+.env
+.env.local

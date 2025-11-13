@@ -1,0 +1,64 @@
+services:
+  mail:
+    container_name: redmine_mail
+    image: docker.io/mailserver/docker-mailserver:latest
+    hostname: mail
+    domainname: ${DOMAIN_NAME}
+    restart: always
+    ports:
+      - "25:25"
+      - "587:587"
+      - "993:993"
+    volumes:
+      - ./smtp/data:/var/mail
+      - ./smtp/state:/var/mail-state
+      - ./smtp/config:/tmp/docker-mailserver/
+      - /etc/letsencrypt/live/mail.${DOMAIN_NAME}/fullchain.pem:/etc/ssl/mail/fullchain.pem:ro
+      - /etc/letsencrypt/live/mail.${DOMAIN_NAME}/privkey.pem:/etc/ssl/mail/privkey.pem:ro
+
+  postgres:
+    image: postgres:15
+    container_name: redmine_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./postgresql:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redmine:
+    image: redmine:6.1
+    container_name: redmine_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    ports:
+      - "${REDMINE_PORT:-10083}:3000"
+    environment:
+      REDMINE_SECRET_KEY_BASE: ${REDMINE_SECRET_KEY_BASE}
+
+      REDMINE_DB_POSTGRES: postgres
+      REDMINE_DB_DATABASE: ${POSTGRES_DB}
+      REDMINE_DB_USERNAME: ${POSTGRES_USER}
+      REDMINE_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      REDMINE_DB_PORT: 5432
+
+      REDMINE_SMTP_HOST: ${REDMINE_SMTP_HOST}
+      REDMINE_SMTP_PORT: ${REDMINE_SMTP_PORT}
+      REDMINE_SMTP_USER: ${REDMINE_SMTP_USER}
+      REDMINE_SMTP_PASSWORD: ${REDMINE_SMTP_PASSWORD}
+      REDMINE_SMTP_STARTTLS: ${REDMINE_SMTP_STARTTLS}
+      REDMINE_SMTP_AUTHENTICATION: ${REDMINE_SMTP_AUTHENTICATION}
+
+      TZ: ${TZ}
+
+    volumes:
+      - ./redmine:/usr/src/redmine/files
